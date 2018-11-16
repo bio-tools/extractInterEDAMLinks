@@ -8,7 +8,7 @@ library(ontologyIndex)
 # library(ontoCAT)
 
 setwd("/home/veit/devel/Bioinformatics/ELIXIR_EDAM/biotoolsExtract/")
-source("ontologyIndex_get_OWL.R")
+# source("ontologyIndex_get_OWL.R")
 
 # ############### get recent EDAM ontology for mapping of terms
 # system("rm EDAM.owl")
@@ -54,36 +54,64 @@ for (i in 1:length(FullReg)) {
 }
 
 ## Functions!
-output <- lapply(AllTools$'function',function(x) lapply(x$output,function(y) 
-  c(grep("format_",unlist(y),value=T),grep("data_",unlist(y),value=T))))
-input <- lapply(AllTools$'function',function(x) lapply(x$input,function(y) 
-  c(grep("format_",unlist(y),value=T),grep("data_",unlist(y),value=T))))
-
-
 fdmaps <- NULL
-for (i in 1:length(input))  {
-  for (j in input[[i]]) {
-    tformats <- grep("format_",j,value=T)
-    tdata <- grep("data_",j,value=T)
-    # restricting to case of only one data to avoid wrong matches
-    if (length(tformats)>0 & length(tdata)==1)
-      for (f in tformats)
-      fdmaps <- rbind(fdmaps, c(f,tdata))
+for (i in 1:nrow(AllTools)) {
+  for (j in 1:length(AllTools$'function'[[i]]$output)) {
+    # print(paste("Tool",i))
+    entry <- AllTools$'function'[[i]]$output[j][[1]]
+    for (k in 1:(length(entry$data)/2)) {
+      entryf <- entry$format[[k]]$uri
+      if(length(entryf)>0) {
+        for (l in 1:length(entryf))
+          print(c(entry$data[k,]$uri,entryf[l]))
+        fdmaps <- rbind(fdmaps,c(entry$data[k,]$uri,entryf[l]))
+      }
+    }
   }
-}
-for (i in 1:length(output))  {
-  for (j in output[[i]]) {
-    tformats <- grep("format_",j,value=T)
-    tdata <- grep("data_",j,value=T)
-    # restricting to case of only one data to avoid wrong matches
-    if (length(tformats)>0 & length(tdata)==1)
-      for (f in tformats)
-        fdmaps <- rbind(fdmaps, c(f,tdata))
+  for (j in 1:length(AllTools$'function'[[i]]$input)) {
+    # print(paste("Tool",i))
+    entry <- AllTools$'function'[[i]]$input[j][[1]]
+    for (k in 1:(length(entry$data)/2)) {
+      entryf <- entry$format[[k]]$uri
+      if(length(entryf)>0) {
+        for (l in 1:length(entryf))
+          print(c(entry$data[k,]$uri,entryf[l]))
+        fdmaps <- rbind(fdmaps,c(entry$data[k,]$uri,entryf[l]))
+      }
+    }
   }
 }
 fdmaps <- unique(fdmaps)
-length(unique(fdmaps[,1]))
-length(unique(fdmaps[,2]))
+
+# output <- lapply(AllTools$'function',function(x) lapply(x$output,function(y) 
+#   c(grep("format_",unlist(y),value=T),grep("data_",unlist(y),value=T))))
+# input <- lapply(AllTools$'function',function(x) lapply(x$input,function(y) 
+#   c(grep("format_",unlist(y),value=T),grep("data_",unlist(y),value=T))))
+
+
+# for (i in 1:length(input))  {
+#   for (j in input[[i]]) {
+#     tformats <- grep("format_",j,value=T)
+#     tdata <- grep("data_",j,value=T)
+#     # restricting to case of only one data to avoid wrong matches
+#     if (length(tformats)>0 & length(tdata)==1)
+#       for (f in tformats)
+#       fdmaps <- rbind(fdmaps, c(f,tdata))
+#   }
+# }
+# for (i in 1:length(output))  {
+#   for (j in output[[i]]) {
+#     tformats <- grep("format_",j,value=T)
+#     tdata <- grep("data_",j,value=T)
+#     # restricting to case of only one data to avoid wrong matches
+#     if (length(tformats)>0 & length(tdata)==1)
+#       for (f in tformats)
+#         fdmaps <- rbind(fdmaps, c(f,tdata))
+#   }
+# }
+# fdmaps <- unique(fdmaps)
+ length(unique(fdmaps[,1]))
+ length(unique(fdmaps[,2]))
 
 
 ## extracting relationship from EDAM
@@ -138,11 +166,11 @@ for (i in 1:(length(t_is_format_of)-2)) {
 
 rownames(EDAM) <- EDAM$Class.ID
 
-EDAM[fdmaps[,1],]$Preferred.Label
+EDAM[fdmaps[,2],]$Preferred.Label
 
 ## put everything into table and think about how to validate
-fdmaps <- cbind(fdmaps[,1], as.character(EDAM[fdmaps[,1], "Preferred.Label"]), 
-                fdmaps[,2], as.character(EDAM[fdmaps[,2], "Preferred.Label"]))
+fdmaps <- cbind(fdmaps[,2], as.character(EDAM[fdmaps[,2], "Preferred.Label"]), 
+                fdmaps[,1], as.character(EDAM[fdmaps[,1], "Preferred.Label"]))
 fdmaps2 <- cbind(fdmaps2[,1], as.character(EDAM[fdmaps2[,1], "Preferred.Label"]), 
                  fdmaps2[,2], as.character(EDAM[fdmaps2[,2], "Preferred.Label"]))
 fdmaps3 <- cbind(fdmaps3[,1], as.character(EDAM[fdmaps3[,1], "Preferred.Label"]), 
@@ -153,17 +181,17 @@ for (f in EDAMformats$Class.ID) {
   matches <- fdmaps[,1] == f
   entries <- rep(NA,6)
   if (sum(matches)> 0) 
-    entries[1:2] <- c(paste(fdmaps[matches,3],collapse=""), paste(fdmaps[matches,4],collapse=""))
+    entries[1:2] <- c(paste(fdmaps[matches,3],collapse="|"), paste(fdmaps[matches,4],collapse="|"))
   matches <- fdmaps2[,1] == f
   if (sum(matches)> 0) 
-    entries[3:4] <- c(paste(fdmaps2[matches,3],collapse=""), paste(fdmaps2[matches,4],collapse=""))
+    entries[3:4] <- c(paste(fdmaps2[matches,3],collapse="|"), paste(fdmaps2[matches,4],collapse="|"))
   matches <- fdmaps3[,1] == f
   if (sum(matches)> 0) 
-    entries[5:6] <- c(paste(fdmaps3[matches,3],collapse=""), paste(fdmaps3[matches,4],collapse=""))
+    entries[5:6] <- c(paste(fdmaps3[matches,3],collapse="|"), paste(fdmaps3[matches,4],collapse="|"))
   fullFormats <- rbind(fullFormats, as.vector(c(f, as.character(EDAM[f,"Preferred.Label"]), entries )))
 }
 colnames(fullFormats) <- c("Format", "Format label", "from bio.tools","from bio.tools label", 
                            "is_format_of", "is_format_of label", "parent", "parent label")
-write.csv2(fullFormats, "FormatDataMappings.csv")
+write.csv(fullFormats, "FormatDataMappings.csv")
 
 
